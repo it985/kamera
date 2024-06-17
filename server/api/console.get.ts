@@ -22,10 +22,9 @@ export default defineEventHandler(async (event) => {
       GROUP BY type
   `
 
-  return {
-    data: {
+  return Response.json({ code: 200, message: 'message', data: {
       total: total[0],
       typeTotal,
-    },
-  }
+    }
+  })
 })

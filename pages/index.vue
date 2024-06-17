@@ -17,25 +17,27 @@ const pageInfo = reactive({
 const indexDataHandle = async () => {
   indexLoading.value = true
   try {
-    const { total, totalPage, pageNum, pageSize, data } = await $fetch('/api/getImageList', {
+    const res = await $fetch('/api/getImageList', {
       method: 'post',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
       body: { pageNum: pageInfo.pageNum, pageSize: pageInfo.pageSize, type: 'index' },
     })
-    if (pageInfo.pageNum <= totalPage) {
-      if (pageInfo.pageNum === totalPage) {
-        handleButton.value = false
+    if (res?.code === 200) {
+      if (pageInfo.pageNum <= res?.data.totalPage) {
+        if (pageInfo.pageNum === res?.data.totalPage) {
+          handleButton.value = false
+        }
+        pageInfo.pageNum++
+        if (indexDataList.value.length === 0) {
+          indexDataList.value = res?.data.data
+        } else {
+          indexDataList.value = indexDataList.value.concat(res?.data.data)
+        }
+        pageInfo.total = res?.data.total
+        pageInfo.totalPage = res?.data.totalPage
       }
-      pageInfo.pageNum++
-      if (indexDataList.value.length === 0) {
-        indexDataList.value = data
-      } else {
-        indexDataList.value = indexDataList.value.concat(data)
-      }
-      pageInfo.total = total
-      pageInfo.totalPage = totalPage
     }
   } catch (e) {
     toast.add({ title: '加载失败！', timeout: 2000, color: 'red' })
@@ -92,7 +94,6 @@ definePageMeta({
             :src="item.url"
             :alt="item.detail"
             lazy
-            :crossorigin="null"
             style="display: block !important;"
           >
           </el-image>

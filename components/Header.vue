@@ -3,13 +3,13 @@ import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import photosList from '~/constants/photos.json'
 
 const breakpoints = useBreakpoints(breakpointsTailwind)
-const smAndLarger = breakpoints.greaterOrEqual('md')
+const mdAndLarger = breakpoints.greaterOrEqual('md')
 const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
 const isOpen = ref(false)
 
-const routeList = ref([])
+const routeList = ref<Array<Object>>([])
 const systemRouterList = ref([
   {
     title: '控制台',
@@ -75,12 +75,10 @@ onBeforeUnmount(() => {
     <nav relative bg-white dark:bg-custom-black>
       <div flex container px-6 py-4 mx-auto md:flex md:justify-between md:items-center>
         <div flex items-center justify-between w-full md:w-36>
-          <ClientOnly>
-            <img class="h-8 w-auto" src="/maskable-icon.png" cursor-pointer @click="router.push('/')" alt="logo">
-          </ClientOnly>
+          <img class="h-8 w-auto" src="/maskable-icon.png" cursor-pointer @click="router.push('/')" alt="logo">
         </div>
 
-        <div v-if="smAndLarger" flex items-center justify-center space-x-3>
+        <div v-if="mdAndLarger" flex items-center justify-center space-x-3>
           <ClientOnly>
             <DarkToggle />
           </ClientOnly>
@@ -98,6 +96,7 @@ onBeforeUnmount(() => {
                   transition-colors duration-200 transform
                   hover="bg-gray-100 dark:(bg-gray-700 text-white)"
                   :class="route.path === item.to ? 'text-custom-green' : 'text-gray-700 dark:text-gray-200'"
+                  :aria-label="item.title"
                 >
                   <span :class="item.icon" text-xl me-4 />{{ item.title }}
                 </NuxtLink>
@@ -111,6 +110,7 @@ onBeforeUnmount(() => {
                   transition-colors duration-200 transform
                   hover="bg-gray-100 dark:(bg-gray-700 text-white)"
                   :class="route.path === item.to ? 'text-custom-green' : 'text-gray-700 dark:text-gray-200'"
+                  :aria-label="item.title"
                 >
                   <span :class="item.icon" text-xl me-4 />{{ item.title }}
                 </NuxtLink>

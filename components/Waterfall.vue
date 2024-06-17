@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 
-const breakpoints = useBreakpoints(breakpointsTailwind)
-const smAndLarger = breakpoints.greaterOrEqual('md')
-
 const props = defineProps({
   loading: Boolean,
   handleButton: Boolean,
@@ -12,6 +9,11 @@ const props = defineProps({
   },
 })
 const emit = defineEmits(['dataHandle'])
+const breakpoints = useBreakpoints(breakpointsTailwind)
+const mdAndLarger = breakpoints.greaterOrEqual('md')
+
+const appConfig = useAppConfig()
+
 const imgId = ref<number>(0)
 const showModal = ref<boolean>(false)
 const mounted = ref<boolean>(false)
@@ -31,6 +33,14 @@ const LazyImg = defineAsyncComponent(() =>
   import('vue-waterfall-plugin-next').then((module) => module.LazyImg)
 )
 
+const breakPointsConfig = computed(() => {
+  return {
+    9999: { rowPerView: 4 },
+    1280: { rowPerView: 3 },
+    1024: { rowPerView: Number(appConfig.mobileRow) === 2 ? 2 : 1 },
+  }
+})
+
 onMounted(async () => {
   mounted.value = true
   await emit('dataHandle')
@@ -47,15 +57,11 @@ onUnmounted(() => {
       <Waterfall
         v-if="dataList && dataList?.length > 0"
         :list="dataList"
-        :gutter="smAndLarger ? 12 : 4"
+        :gutter="mdAndLarger ? 12 : 4"
         :hasAroundGutter="true"
         :crossOrigin="false"
         :backgroundColor="isDark ? '#121212' : '#FFFFFF'"
-        :breakpoints="{
-          9999: { rowPerView: 4 },
-          1280: { rowPerView: 3 },
-          1024: { rowPerView: 2 },
-        }"
+        :breakpoints="breakPointsConfig"
       >
         <template #item="{ item }">
           <div class="card">

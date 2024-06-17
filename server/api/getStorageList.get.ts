@@ -2,17 +2,15 @@ import { fetchStorageInfo } from '~/utils/query'
 
 export default defineEventHandler(async (event) => {
   const { alistToken, alistUrl } = await fetchStorageInfo()
-  const { data } = await $fetch(`${alistUrl}/api/admin/storage/list`, {
+  const res: any = await $fetch(`${alistUrl}/api/admin/storage/list`, {
     timeout: 60000,
     method: 'get',
     headers: {
       Authorization: alistToken,
     },
-  }).catch((e) => {
-    console.log(e)
-    throw createError({ statusCode: 500, statusMessage: '获取存储列表失败！' })
   })
-  return {
-    data: data.content || [],
+  if (res?.code === 200) {
+    return Response.json({ code: 200, message: '获取成功！', data: res?.data.content })
   }
+  return Response.json({ code: 500, message: '获取失败！', data: null })
 })

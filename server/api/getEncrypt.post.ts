@@ -7,7 +7,5 @@ export default defineEventHandler(async (event) => {
   const { secretKey } = await fetchAuth()
   const hashedPassword = CryptoJS.HmacSHA512(body.password, secretKey).toString()
 
-  return {
-    data: hashedPassword,
-  }
+  return Response.json({ code: 200, message: 'success', data: hashedPassword })
 })

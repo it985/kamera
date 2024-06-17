@@ -30,24 +30,25 @@ const validate = (state: any): FormError[] => {
 async function handleSubmitClick(event: FormSubmitEvent<any>) {
   loading.value = true
   try {
-    const { token, tokenName } = await $fetch('/api/login', {
+    const res = await $fetch('/api/login', {
       method: 'post',
       body: { username: loginForm.username, password: loginForm.password },
     })
-    user.setToken(token)
-    user.setTokenName(tokenName)
-    router.push('/admin')
-    if (token) {
+    if (res?.code === 200) {
+      user.setToken(res?.data.token)
+      user.setTokenName(res?.data.tokenName)
       toast.add({ title: '登录成功！', timeout: 2000 })
+      router.push('/admin')
+    } else {
+      toast.add({ title: res?.message, timeout: 2000, color: 'red' })
     }
-    else {
+  } catch (e) {
+    if (e?.status === 500) {
+      toast.add({ title: '用户名或密码错误！', timeout: 2000, color: 'red' })
+    } else {
       toast.add({ title: '登录失败！', timeout: 2000, color: 'red' })
     }
-  }
-  catch (e) {
-    toast.add({ title: '登录失败！', timeout: 2000, color: 'red' })
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -58,8 +59,9 @@ definePageMeta({
 </script>
 
 <template>
-  <div flex items-center justify-center w-full h-full style="background-image: url('/fufu.jpg'); background-size: cover;"
-    md:grid md:grid-cols-10 md:gap-4
+  <div
+    flex items-center justify-center w-full h-full md:grid md:grid-cols-10 md:gap-4
+    style="background-image: url('/fufu.jpg'); background-size: cover;"
   >
     <div md:col-span-5></div>
     <div
@@ -83,7 +85,7 @@ definePageMeta({
             <UInput v-model="loginForm.password" type="password" />
           </UFormGroup>
 
-          <UButton type="submit" color="white" :loading="loading">
+          <UButton type="submit" color="white" :loading="loading" aria-label="登录">
             登录
           </UButton>
         </UForm>

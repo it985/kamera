@@ -18,19 +18,9 @@ export default defineEventHandler(async (event) => {
         WHERE config_key = 'password';
     `
     if (!data.length) {
-      return {
-        data: 0,
-      }
-    } else {
-      throw createError({
-        statusCode: 500,
-        statusMessage: '密码修改失败！',
-      })
+      return Response.json({ code: 200, message: '更新成功！', data: null })
     }
-  } else {
-    throw createError({
-      statusCode: 500,
-      statusMessage: '旧密码不正确！',
-    })
+    return Response.json({ code: 500, message: '密码修改失败！', data: null })
   }
+  return Response.json({ code: 500, message: '旧密码不正确！', data: null })
 })

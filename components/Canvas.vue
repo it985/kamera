@@ -11,8 +11,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['modalUpdate'])
+const { share, isSupported } = useShare()
 const source = ref('')
-const { copy, isSupported } = useClipboard({ source })
 const show = ref(false)
 const toast = useToast()
 const obj = ref({})
@@ -25,9 +25,9 @@ const items = [{
   label: '更多',
 }]
 
-const share = (text, url) => {
+const shareHandle = (text, url) => {
   try {
-    navigator.share({
+    share({
       title: appName || '旅行足迹',
       text: text,
       url: url,
@@ -38,6 +38,7 @@ const share = (text, url) => {
 }
 
 const copyHandle = (text) => {
+  const { copy, isSupported } = useClipboard({ source })
   if (isSupported) {
     source.value = text
     copy(source.value)
@@ -80,19 +81,21 @@ onUnmounted(() => {
   >
     <template #header="{ close }">
       <div flex flex-row justify-between>
-        <span>点击图片预览</span>
+        <span aria-label="点击下方图片预览">点击图片预览</span>
         <div flex space-x-3>
           <ClientOnly>
             <UPopover mode="hover">
-              <div i-carbon-overflow-menu-horizontal cursor-pointer />
+              <div i-carbon-overflow-menu-horizontal cursor-pointer aria-label="更多操作按钮" />
               <template #panel>
                 <div p-2>
                   <div
+                    v-if="isSupported"
                     flex flex-row items-center rounded-md
                     block px-5 py-2 focus-blue w-full
                     transition-colors duration-200 transform cursor-pointer
                     hover="bg-gray-100 dark:(bg-gray-700 text-white)"
-                    @click="share(obj?.detail, obj?.url)"
+                    @click="shareHandle(obj?.detail, obj?.url)"
+                    aria-label="分享"
                   >
                     <span i-carbon-crowd-report text-xl me-4 />分享
                   </div>
@@ -102,6 +105,7 @@ onUnmounted(() => {
                     transition-colors duration-200 transform cursor-pointer
                     hover="bg-gray-100 dark:(bg-gray-700 text-white)"
                     @click="copyHandle(obj?.url)"
+                    aria-label="复制链接"
                   >
                     <span i-carbon-copy text-xl me-4 />复制链接
                   </div>
@@ -110,7 +114,7 @@ onUnmounted(() => {
             </UPopover>
           </ClientOnly>
 
-          <div i-carbon-close-large cursor-pointer @click="close" />
+          <div i-carbon-close-large cursor-pointer @click="close" aria-label="关闭当前图片详情" />
         </div>
       </div>
     </template>
@@ -126,7 +130,6 @@ onUnmounted(() => {
             :min-scale="0.2"
             :preview-src-list="[obj?.url]"
             :initial-index="1"
-            :crossorigin="null"
             fit="contain"
           />
         </ClientOnly>
@@ -139,7 +142,7 @@ onUnmounted(() => {
                 <div i-carbon-camera />
                 <p>相机</p>
               </h3>
-              <p mt-1 text-center>{{ obj?.exif?.Model?.description || 'N&A' }}</p>
+              <p mt-1 text-center>{{ obj?.exif?.model || 'N&A' }}</p>
             </el-card>
             <el-card class="box-card" mx-auto rounded-lg shadow-md w-full>
               <h3 flex justify-center items-center space-x-1 text-base text-center font-medium>

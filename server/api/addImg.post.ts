@@ -14,13 +14,7 @@ export default defineEventHandler(async (event) => {
     `
 
   if (!data.length) {
-    return {
-      data: 0,
-    }
+    return Response.json({ code: 200, message: '保存成功！', data: null })
   }
-  else {
-    return {
-      data: 1,
-    }
-  }
+  return Response.json({ code: 500, message: '保存失败！', data: null })
 })

@@ -10,14 +10,17 @@ const dataInfo = ref({})
 const dataHandle = async () => {
   loading.value = true
   try {
-    const { data } = await $fetch('/api/console', {
+    const res = await $fetch('/api/console', {
       timeout: 60000,
       method: 'get',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
     })
-    dataInfo.value = data
+    if (res?.code !== 200) {
+      toast.add({ title: '请求失败！', timeout: 2000, color: 'red' })
+    }
+    dataInfo.value = res?.data
   } catch (e) {
     console.log(e)
     toast.add({ title: '数据获取失败！', timeout: 2000, color: 'red' })
@@ -29,10 +32,14 @@ const dataHandle = async () => {
 onBeforeMount(async () => {
   await dataHandle()
 })
+
+definePageMeta({
+  layout: 'admin',
+})
 </script>
 
 <template>
-  <div p2 md:p8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-8 md:grid-cols-3 md:gap-12>
+  <div p2 md:p8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-8 md:grid-cols-3 md:gap-12 pb-20 md:pb-2>
     <el-card>
       <div flex flex-col h-48 p2 space-y-4>
         <span font-light>照片数据</span>
@@ -47,11 +54,22 @@ onBeforeMount(async () => {
           <div v-if="photosList && photosList.length > 0" grid grid-cols-2 gap-4 p2>
             <div flex flex-col space-y-4>
               <span font-light>首页精选</span>
-              <span text-xl font-semibold>{{ loading ? '获取中...' : dataInfo?.typeTotal?.find(obj => obj.type === 'index').count || 0 }} {{ loading ? '' : '张' }}</span>
+              <span text-xl font-semibold>{{
+                loading
+                  ? '获取中...'
+                  : Array.isArray(dataInfo?.typeTotal) && dataInfo?.typeTotal.length > 0
+                    ? dataInfo?.typeTotal?.find(obj => obj.type === 'index')?.count || 0
+                    : 0 }} {{ loading ? '' : '张' }}</span>
             </div>
             <div flex flex-col space-y-4 v-for="item in photosList" :key="item">
               <span font-light>{{ item.title }}</span>
-              <span text-xl font-semibold>{{ loading ? '获取中...' : dataInfo?.typeTotal?.find(obj => obj.type === item.url.replace('/', '')).count || 0 }} {{ loading ? '' : '张' }}</span>
+              <span text-xl font-semibold>{{
+                loading
+                  ? '获取中...'
+                  : Array.isArray(dataInfo?.typeTotal) && dataInfo?.typeTotal.length > 0
+                    ? dataInfo?.typeTotal?.find(obj => obj.type === item.url.replace('/', ''))?.count || 0
+                    : 0
+              }} {{ loading ? '' : '张' }}</span>
             </div>
           </div>
         </el-scrollbar>

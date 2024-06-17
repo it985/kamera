@@ -4,7 +4,8 @@ import photosList from '~/constants/photos.json'
 
 const toast = useToast()
 const breakpoints = useBreakpoints(breakpointsTailwind)
-const smAndLarger = breakpoints.greaterOrEqual('md')
+const mdAndLarger = breakpoints.greaterOrEqual('md')
+const lgAndLarger = breakpoints.greaterOrEqual('lg')
 const { isMobile } = useDevice()
 const user = useUserStore()
 const dataList = ref<Array<Object>>([])
@@ -73,7 +74,7 @@ const uClick = async () => {
 const dataHandle = async () => {
   loading.value = true
   try {
-    const { total, totalPage, pageNum, pageSize, data } = await $fetch('/api/getFileList', {
+    const res = await $fetch('/api/getFileList', {
       timeout: 60000,
       method: 'post',
       headers: {
@@ -81,9 +82,11 @@ const dataHandle = async () => {
       },
       body: { pageNum: pageInfo.pageNum, pageSize: pageInfo.pageSize, type: type.value },
     })
-    dataList.value = data
-    pageInfo.total = total
-    pageInfo.totalPage = totalPage
+    if (res?.code === 200) {
+      dataList.value = res?.data.data
+      pageInfo.total = res?.data.total
+      pageInfo.totalPage = res?.data.totalPage
+    }
   } catch (e) {
     console.log(e)
     toast.add({ title: '加载失败！', timeout: 2000, color: 'red' })
@@ -94,7 +97,7 @@ const dataHandle = async () => {
 
 const updateHandle = async () => {
   try {
-    const { data } = await $fetch('/api/updateImgInfo', {
+    const res = await $fetch('/api/updateImgInfo', {
       timeout: 60000,
       method: 'put',
       headers: {
@@ -102,7 +105,7 @@ const updateHandle = async () => {
       },
       body: { id: objInfo.id, type: objInfo.type, rating: objInfo.rating, detail: objInfo.detail, url: objInfo.url, sort: objInfo.sort },
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '更新成功！', timeout: 2000 })
       await uClick()
       await dataHandle()
@@ -117,7 +120,7 @@ const updateHandle = async () => {
 
 const deleteHandle = async (id: number) => {
   try {
-    const { data } = await $fetch('/api/deleteImg', {
+    const res = await $fetch('/api/deleteImg', {
       timeout: 60000,
       method: 'delete',
       headers: {
@@ -125,7 +128,7 @@ const deleteHandle = async (id: number) => {
       },
       body: { id: id },
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '删除成功！', timeout: 2000 })
       await dataHandle()
     } else {
@@ -140,7 +143,7 @@ const deleteHandle = async (id: number) => {
 const updateShowHandle = async (val: number, id: number) => {
   showBtnLoading.value = true
   try {
-    const { data } = await $fetch('/api/updateShow', {
+    const res = await $fetch('/api/updateShow', {
       timeout: 60000,
       method: 'put',
       headers: {
@@ -148,7 +151,7 @@ const updateShowHandle = async (val: number, id: number) => {
       },
       body: { id: id, show: val },
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '更新成功！', timeout: 2000 })
       showBtnLoading.value = false
       await dataHandle()
@@ -171,9 +174,9 @@ const tagTitleHandle = (type: string) => {
   return photosList.find(item => type === item.url.replace('/', ''))?.title
 }
 
-onBeforeMount(async () => {
-  await dataHandle()
-})
+const filterShow = (value: number, row: any) => {
+  return row.show === value
+}
 
 onBeforeMount(() => {
   if (photosList) {
@@ -186,6 +189,10 @@ onBeforeMount(() => {
   }
 })
 
+onMounted(async () => {
+  await dataHandle()
+})
+
 definePageMeta({
   layout: 'admin',
 })
@@ -195,7 +202,7 @@ definePageMeta({
   <div>
     <div p2 md:p8 pb-20>
       <div flex items-center justify-center justify-between w-full mt-4>
-        <el-select v-model="type" m-2 placeholder="请选择类型" @change="dataHandle">
+        <el-select v-model="type" m-2 max-w-80 placeholder="类型(查询条件)" @change="dataHandle" aria-label="类型(查询条件)选择下拉框">
           <el-option
             v-for="item in imgTypeOptions"
             :key="item.value"
@@ -203,15 +210,15 @@ definePageMeta({
             :value="item.value"
           />
         </el-select>
-        <div i-carbon-rotate-360 cursor-pointer @click="dataHandle" />
+        <el-button round :loading="loading" @click="dataHandle"> 刷新 </el-button>
       </div>
       <el-table
-        :data="dataList"
         v-loading="loading"
+        :data="dataList"
         stripe
         height="calc(100vh - 16rem)"
       >
-        <el-table-column label="id" prop="id" />
+        <el-table-column label="id" prop="id" sortable />
         <el-table-column label="类型" prop="type">
           <template #default="scope">
             <el-tag v-if="scope.row.type === 'index'">首页精选</el-tag>
@@ -221,8 +228,30 @@ definePageMeta({
             <el-tag v-else type="danger">错误类型</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="评分" prop="rating" />
-        <el-table-column label="是否显示" prop="type">
+        <el-table-column
+          label="评分"
+          prop="rating"
+          :width="!lgAndLarger ? '127' : ''"
+          sortable
+        >
+          <template #default="scope">
+            <el-rate
+              v-model="scope.row.rating"
+              disabled
+              text-color="#ff9900"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="是否显示"
+          prop="show"
+          :filters="[
+            { text: '是', value: 0 },
+            { text: '否', value: 1 },
+          ]"
+          :filter-method="filterShow"
+          filter-placement="bottom-end"
+        >
           <template #default="scope">
             <el-switch
               v-model="scope.row.show"
@@ -236,7 +265,7 @@ definePageMeta({
             />
           </template>
         </el-table-column>
-        <el-table-column label="排序" prop="sort" />
+        <el-table-column label="排序" prop="sort" sortable />
         <el-table-column label="描述" prop="detail">
           <template #default="scope">
             <el-text class="w-240px" truncated>
@@ -244,7 +273,7 @@ definePageMeta({
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column align="right" fixed="right">
+        <el-table-column label="操作" align="right" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="detail(scope.row)">查看</el-button>
             <el-button size="small" @click="() => { objInfo.sort = scope.row.sort ;update(scope.row) }">维护</el-button>
@@ -275,9 +304,9 @@ definePageMeta({
     <el-drawer
       v-model="showUpdateModal"
       title="维护"
-      :direction="!isMobile || smAndLarger ? 'ltr' : 'btt'"
+      :direction="!isMobile || mdAndLarger ? 'ltr' : 'btt'"
       @close="() => uClick()"
-      :size="!isMobile || smAndLarger ? '50%' : '80%'"
+      :size="!isMobile || mdAndLarger ? '50%' : '80%'"
     >
       <div space-y-2>
         <p>图片地址：</p>
@@ -312,9 +341,9 @@ definePageMeta({
     <el-drawer
       v-model="showModal"
       title="详情"
-      :direction="!isMobile || smAndLarger ? 'ltr' : 'btt'"
+      :direction="!isMobile || mdAndLarger ? 'ltr' : 'btt'"
       @close="() => xClick()"
-      :size="!isMobile || smAndLarger ? '50%' : '80%'"
+      :size="!isMobile || mdAndLarger ? '50%' : '80%'"
     >
       <el-image
         lazy shadow-xl border-4
@@ -322,7 +351,6 @@ definePageMeta({
         :zoom-rate="1.2"
         :max-scale="7"
         :min-scale="0.2"
-        :crossorigin="null"
         fit="cover"
       >
         <template #placeholder>

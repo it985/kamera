@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
+import { breakpointsTailwind, useBreakpoints, useDateFormat, useNow } from '@vueuse/core'
 import type { FormError, FormSubmitEvent } from '#ui/types'
 
 const breakpoints = useBreakpoints(breakpointsTailwind)
-const smAndLarger = breakpoints.greaterOrEqual('md')
+const mdAndLarger = breakpoints.greaterOrEqual('md')
 const toast = useToast()
 const userLoading = ref<boolean>(false)
 const storageLoading = ref<boolean>(false)
+const backupLoading = ref<boolean>(false)
 const storageInfo = ref()
 const user = useUserStore()
 const showS3Modal = ref<boolean>(false)
@@ -58,17 +59,17 @@ const userState = reactive({
 const onSubmitUser = async (event: FormSubmitEvent<any>) => {
   userLoading.value = true
   try {
-    const { data } = await $fetch('/api/updatePwd', {
+    const res = await $fetch('/api/updatePwd', {
       method: 'post',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
       body: userState,
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '更新成功！', timeout: 2000 })
     } else {
-      toast.add({ title: '更新失败！', timeout: 2000, color: 'red' })
+      toast.add({ title: res?.message, timeout: 2000, color: 'red' })
     }
   } catch (e) {
     toast.add({ title: '更新失败！', timeout: 2000, color: 'red' })
@@ -80,13 +81,15 @@ const onSubmitUser = async (event: FormSubmitEvent<any>) => {
 const getStorageInfo = async () => {
   storageLoading.value = true
   try {
-    const { data } = await $fetch('/api/getStorageInfo', {
+    const res = await $fetch('/api/getStorageInfo', {
       method: 'get',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
     })
-    storageInfo.value = data
+    if (res?.code === 200) {
+      storageInfo.value = res?.data
+    }
   } catch (e) {
     console.log(e)
   } finally {
@@ -127,14 +130,14 @@ const xClick = async () => {
 
 const updateS3 = async () => {
   try {
-    const { data } = await $fetch('/api/updateS3Info', {
+    const res= await $fetch('/api/updateS3Info', {
       method: 'put',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
       body: s3State,
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '更新成功！', timeout: 2000 })
       await xClick()
       await getStorageInfo()
@@ -149,14 +152,14 @@ const updateS3 = async () => {
 
 const updateAlist = async () => {
   try {
-    const { data } = await $fetch('/api/updateAListInfo', {
+    const res = await $fetch('/api/updateAListInfo', {
       method: 'put',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
       body: alistState,
     })
-    if (data === 0) {
+    if (res?.code === 200) {
       toast.add({ title: '更新成功！', timeout: 2000 })
       await xClick()
       await getStorageInfo()
@@ -166,6 +169,39 @@ const updateAlist = async () => {
   } catch (e) {
     console.log(e)
     toast.add({ title: '更新失败！', timeout: 2000, color: 'red' })
+  }
+}
+
+const backupHandle = async () => {
+  try {
+    backupLoading.value = true
+    const res = await $fetch('/api/getImageJson', {
+      method: 'get',
+      headers: {
+        Authorization: `${user.tokenName} ${user.token}`,
+      },
+    })
+    if (res?.code === 200) {
+      toast.add({ title: '备份数据获取成功！', timeout: 2000 })
+      const blob = new Blob([JSON.stringify(res?.data)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const formatted = useDateFormat(useNow(), 'YYYY-MM-DD-HH-mm-ss')
+      a.download = `kamera-backup-${formatted.value}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } else {
+      toast.add({ title: '备份数据获取失败！', timeout: 2000, color: 'red' })
+    }
+  } catch (e) {
+    console.log(e)
+    toast.add({ title: '备份数据获取失败！', timeout: 2000, color: 'red' })
+  } finally {
+    backupLoading.value = false
   }
 }
 
@@ -203,6 +239,21 @@ definePageMeta({
                 </UButton>
               </UForm>
             </div>
+            <UDivider
+              label="备份"
+              my-2
+              :ui="{ label: 'text-primary-500 dark:text-primary-400' }"
+            />
+            <UButton
+              icon="i-carbon-data-backup"
+              size="sm"
+              color="white"
+              variant="solid"
+              label="备份"
+              :trailing="false"
+              @click="backupHandle"
+              :loading="backupLoading"
+            />
           </el-card>
         </div>
       </template>
@@ -217,7 +268,7 @@ definePageMeta({
           </template>
           <el-descriptions
             direction="vertical"
-            :column="smAndLarger ? 3 : 2"
+            :column="mdAndLarger ? 3 : 2"
             border
           >
             <el-descriptions-item label="AccessKey_ID">
@@ -265,9 +316,9 @@ definePageMeta({
     <el-drawer
       v-model="showS3Modal"
       title="S3 配置信息维护"
-      :direction="smAndLarger ? 'ltr' : 'btt'"
+      :direction="mdAndLarger ? 'ltr' : 'btt'"
       @close="() => xClick()"
-      :size="smAndLarger ? '50%' : '80%'"
+      :size="mdAndLarger ? '50%' : '80%'"
     >
       <div space-y-2>
         <p>阿里 OSS / AWS S3 AccessKey_ID：</p>
@@ -318,9 +369,9 @@ definePageMeta({
     <el-drawer
       v-model="showAListModal"
       title="AList 配置信息维护"
-      :direction="smAndLarger ? 'ltr' : 'btt'"
+      :direction="mdAndLarger ? 'ltr' : 'btt'"
       @close="() => xClick()"
-      :size="smAndLarger ? '50%' : '80%'"
+      :size="mdAndLarger ? '50%' : '80%'"
     >
       <div space-y-2>
         <p>AList 地址：</p>

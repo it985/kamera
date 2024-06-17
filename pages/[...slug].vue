@@ -17,25 +17,27 @@ const pageInfo = reactive({
 const dataHandle = async () => {
   loading.value = true
   try {
-    const { total, totalPage, pageNum, pageSize, data } = await $fetch('/api/getImageList', {
+    const res = await $fetch('/api/getImageList', {
       method: 'post',
       headers: {
         Authorization: `${user.tokenName} ${user.token}`,
       },
       body: { pageNum: pageInfo.pageNum, pageSize: pageInfo.pageSize, type: route.path.replace('/', '') },
     })
-    if (pageInfo.pageNum <= totalPage) {
-      if (pageInfo.pageNum === totalPage) {
-        handleButton.value = false
+    if (res?.code === 200) {
+      if (pageInfo.pageNum <= res?.data.totalPage) {
+        if (pageInfo.pageNum === res?.data.totalPage) {
+          handleButton.value = false
+        }
+        pageInfo.pageNum++
+        if (dataList.value.length === 0) {
+          dataList.value = res?.data.data
+        } else {
+          dataList.value = dataList.value.concat(res?.data.data)
+        }
+        pageInfo.total = res?.data.total
+        pageInfo.totalPage = res?.data.totalPage
       }
-      pageInfo.pageNum++
-      if (dataList.value.length === 0) {
-        dataList.value = data
-      } else {
-        dataList.value = dataList.value.concat(data)
-      }
-      pageInfo.total = total
-      pageInfo.totalPage = totalPage
     }
   } catch (e) {
     toast.add({ title: '加载失败！', timeout: 2000, color: 'red' })
@@ -55,10 +57,7 @@ definePageMeta({
   layout: 'default',
   validate: async (route) => {
     try {
-      if (photosList.some(i => i.url === route.path)) {
-        return true
-      }
-      return false
+      return !!photosList.some(i => i.url === route.path)
     } catch (e) {
       console.log(e)
       return false

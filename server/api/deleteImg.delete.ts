@@ -10,12 +10,7 @@ export default defineEventHandler(async (event) => {
     `
 
   if (!data.length) {
-    return {
-      data: 0,
-    }
-  } else {
-    return {
-      data: 1,
-    }
+    return Response.json({ code: 200, message: '删除成功！', data: null })
   }
+  return Response.json({ code: 500, message: '删除失败！', data: null })
 })

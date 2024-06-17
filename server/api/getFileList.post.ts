@@ -55,18 +55,19 @@ export default defineEventHandler(async (event) => {
         `
   }
 
-  return {
-    total: length[0].count,
-    totalPage: !data.length ? 0 : Math.ceil(length[0].count / body.pageSize),
-    pageNum: body.pageNum,
-    pageSize: body.pageSize,
-    data: !data.length
-      ? []
-      : data.map((item) => {
-        return {
-          ...item,
-          exif: JSON.parse(item.exif),
-        }
-      }),
-  }
+  return Response.json({ code: 200, message: 'success', data: {
+      total: length[0].count,
+      totalPage: !data.length ? 0 : Math.ceil(length[0].count / body.pageSize),
+      pageNum: body.pageNum,
+      pageSize: body.pageSize,
+      data: !data.length
+        ? []
+        : data.map((item) => {
+          return {
+            ...item,
+            exif: JSON.parse(item.exif),
+          }
+        }),
+    }
+  })
 })

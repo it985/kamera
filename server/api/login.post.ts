@@ -12,14 +12,10 @@ export default defineEventHandler(async (event) => {
   if (password && username === body.username && hashedPassword === password) {
     const payload = { username }
     const token = jwt.sign(payload, secretKey, { expiresIn: '24h' })
-    return {
-      token,
-      tokenName: 'Bearer',
-    }
-  } else {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Username or password is incorrect',
-    })
+    return Response.json({ code: 200, message: '登录成功！', data: {
+        token,
+        tokenName: 'Bearer',
+      } })
   }
+  return Response.json({ code: 500, message: '用户名或密码错误！', data: null })
 })
